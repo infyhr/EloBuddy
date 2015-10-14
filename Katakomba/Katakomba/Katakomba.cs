@@ -30,7 +30,7 @@ namespace Katakomba {
 
             // Some main crap
             menu.AddGroupLabel("Katakomba");
-            menu.AddLabel("Version: 1.1.2");
+            menu.AddLabel("Version: 1.1.2.0");
             menu.AddSeparator();
             menu.AddLabel("infy"); // Author
 
@@ -176,10 +176,6 @@ namespace Katakomba {
                     ignite.Cast(target);
                 }
             }
-        }
-
-        private double markDmg(AIHeroClient target) {
-            return target.HasBuff("katarinaqmark") ? myHero.GetSpellDamage(target, SpellSlot.Q) : 0;
         }
 
         private static void killSteal() {
@@ -334,13 +330,13 @@ namespace Katakomba {
             return true;
         }
 
-        private static void GameObject_OnCreate1(GameObject sender, EventArgs args) {
+        /*private static void GameObject_OnCreate1(GameObject sender, EventArgs args) {
             //Chat.Print("onCreate");
-            /*foreach(var ward in ObjectManager.Get<Obj_Ward>()) {
+            foreach(var ward in ObjectManager.Get<Obj_Ward>()) {
                 if(EtcMenu["wardjump"].Cast<KeyBind>().CurrentValue && ward.Name.ToLower().Contains("ward") && E.IsReady()) {
                     E.Cast(ward);
                 }
-            }*/
-        }
+            }
+        }*/
     }
 }
