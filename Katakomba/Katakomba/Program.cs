@@ -9,13 +9,7 @@ namespace Katakomba {
         }
 
         private static void Game_OnStart(EventArgs args) {
-            var champion = ObjectManager.Player.ChampionName.ToLower();
-
-            switch(champion) {
-                case "katarina":
-                    Katakomba.Init();
-                break;
-            }
+            if(ObjectManager.Player.ChampionName.ToLower() == "katarina") Katakomba.Init();
         }
     }
 }

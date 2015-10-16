@@ -4,40 +4,48 @@ using EloBuddy;
 using EloBuddy.SDK;
 using EloBuddy.SDK.Events;
 using EloBuddy.SDK.Menu;
-using EloBuddy.SDK.Utils;
 using EloBuddy.SDK.Menu.Values;
 using SharpDX;
 
 namespace Katakomba {
     class Katakomba {
-        private static AIHeroClient myHero;
+        private static AIHeroClient myHero; // Self
         private static Spell.Targeted Q;
-        private static Spell.Active W;
+        private static Spell.Active   W;
         private static Spell.Targeted E;
-        private static Spell.Active R;
-        private static SpellSlot IgniteSlot; // ignite
+        private static Spell.Active   R;
+        private static SpellSlot      IgniteSlot; // ignite
         private static Menu menu, ComboMenu, HarassMenu, KillStealMenu, EtcMenu; // menus
         private static bool _isChanneling; // channeling the ultimate
-        //private static AIHeroClient target; // enemy target
-        private static Vector3 mousePos { get { return Game.CursorPos; } }
 
-        // autoWard KS
-        public static int LastPlaced;
-        public static Vector3 LastWardPos;
+        private static string version = "1.1.2.0"; // Katakomba version
 
+        private static AIHeroClient target; // enemy target
+        private static InventorySlot wardSlot; // where our ward resides!
+
+        // jumpKS();
+        public static int LastPlaced; // Last placed tick time of the ward
+        public static Vector3 LastWardPos; // Last placed position of the ward
+
+        /// <summary>
+        /// EloBuddy initialization.
+        /// </summary>
         public static void Init() {
             Bootstrap.Init(null);
             Loading.OnLoadingComplete += OnLoad;
         }
 
-        private static void initMenu() {
+        /// <summary>
+        /// Main menu configuration.
+        /// </summary>
+        private static void InitMenu() {
             menu = MainMenu.AddMenu("Katakomba", "Katakomba");
 
             // Some main crap
             menu.AddGroupLabel("Katakomba");
-            menu.AddLabel("Version: 1.1.2.0");
+            menu.AddLabel("Version: " + version);
             menu.AddSeparator();
-            menu.AddLabel("infy"); // Author
+            menu.AddLabel("www.github.com/infyhr/EloBuddy");
 
             // Combo
             ComboMenu = menu.AddSubMenu("Combo", "KatakombaCombo");
@@ -59,65 +67,64 @@ namespace Katakomba {
 
             // Etc menu
             EtcMenu = menu.AddSubMenu("Et cetera", "KatakombaEtc");
-            EtcMenu.AddGroupLabel("Flee Settings");
-            EtcMenu.Add("wardjump", new KeyBind("Ward Jump", false, KeyBind.BindTypes.HoldActive, 'Z'));
+            EtcMenu.AddGroupLabel("To be added.");
+            ComboMenu.Add("wardjump", new KeyBind("Ward Jump", false, KeyBind.BindTypes.HoldActive, 'Z'));
         }
 
         private static void OnLoad(EventArgs args) {
-            // Register champion
+            // Register out champion
             myHero = ObjectManager.Player;
             if(myHero.Hero != Champion.Katarina) return;
 
             // Register spell slots
             Q = new Spell.Targeted(SpellSlot.Q, 675);
-            W = new Spell.Active(SpellSlot.W, 375);
+            W = new Spell.Active(SpellSlot.W,   375);
             E = new Spell.Targeted(SpellSlot.E, 700);
-            R = new Spell.Active(SpellSlot.R, 550);
+            R = new Spell.Active(SpellSlot.R,   550);
 
-            // Register Ignite slot if any
+            // Register the Ignite slot, if any
             IgniteSlot = Player.Spells.FirstOrDefault(o => o.SData.Name.ToLower().Contains("summonerdot")).Slot;
 
             // Initialize the menu
-            initMenu();
+            InitMenu();
 
-            //GameObject.OnCreate += GameObject_OnCreate1;
+            // Main functions
             Game.OnTick += OnTick;
-            Chat.Print("Katakomba Loaded successfully.");
+            Console.WriteLine("Katakomba Loaded successfully. Version " + version);
             Orbwalker.OnPreAttack     += Orbwalker_OnPreAttack;
             Player.OnProcessSpellCast += Player_OnProcessSpellCast;
         }
 
         /// <summary>
-        /// Gets hit when a casted spell is being processed.
+        /// Gets hit whenever a spell is being cast.
         /// </summary>
         /// <param name="sender">Who is casting</param>
-        /// <param name="args">args</param>
+        /// <param name="args">Caster's arguments</param>
         private static void Player_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args) {
             if(!sender.IsMe || args.SData.Name != "KatarinaR" || !myHero.HasBuff("katarinarsound")) return;
 
             _isChanneling = true;
-            Chat.Print("Channeling ultimate . . .");
+            Console.WriteLine("Channeling ultimate . . .");
             Orbwalker.DisableMovement.Equals(true);
             Orbwalker.DisableAttacking.Equals(true);
-            // Zhonya logic.
-            if(myHero.HealthPercent <= 15) {
-                var zhonyaslot = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Zhonyas_Hourglass);
-                if(zhonyaslot != null && Player.GetSpell(zhonyaslot.SpellSlot).IsReady) {
-                    Player.CastSpell(zhonyaslot.SpellSlot);
-                    _isChanneling = false;
-                    return;
-                }
-            }
             _isChanneling = false;
         }
 
         /// <summary>
-        /// Function that hits before an attack has been made. Antistop spin.
+        /// Function that hits before an attack has been made. Stops Katarina's antispin.
         /// </summary>
-        /// <param name="target"></param>
-        /// <param name="args"></param>
+        /// <param name="target">Who is being attacked</param>
+        /// <param name="args">Orbwalker attack arguments</param>
         private static void Orbwalker_OnPreAttack(AttackableUnit target, Orbwalker.PreAttackArgs args) {
             if(myHero.IsMe) args.Process = !myHero.HasBuff("KatarinaR");
+        }
+
+        /// <summary>
+        /// Figure out if we are in an ultimate state, channeling it.
+        /// </summary>
+        /// <returns>true if we are channeling</returns>
+        private static bool InUltimate() {
+            return myHero.HasBuff("KatarinaR") || Player.Instance.Spellbook.IsChanneling || myHero.HasBuff("katarinarsound");
         }
 
         /// <summary>
@@ -125,23 +132,23 @@ namespace Katakomba {
         /// </summary>
         /// <param name="args"></param>
         private static void OnTick(EventArgs args) {
-            // Figure if ult is being channeled, if so return.
-            if(myHero.HasBuff("KatarinaR") || Player.Instance.Spellbook.IsChanneling || myHero.HasBuff("katarinarsound")) {
+            // Figure if ult is being channeled, if so, stop with execution.
+            if(InUltimate()) {
                 Orbwalker.DisableMovement.Equals(true);
                 Orbwalker.DisableAttacking.Equals(true);
             }
 
-            // Process wardjump
-            if(EtcMenu["wardjump"].Cast<KeyBind>().CurrentValue) wardjump();
-
             // Process combo
-            if(ComboMenu["combokey"].Cast<KeyBind>().CurrentValue) combo();
-
-            // Harass
-            if(HarassMenu["autoharass"].Cast<CheckBox>().CurrentValue) autoHarass();
+            if(ComboMenu["combokey"].Cast<KeyBind>().CurrentValue) Combo();
 
             // Killsteal
-            if(KillStealMenu["killsteal"].Cast<CheckBox>().CurrentValue) killSteal();
+            if(KillStealMenu["killsteal"].Cast<CheckBox>().CurrentValue) KillSteal();
+
+            // Harass
+            if(HarassMenu["autoharass"].Cast<CheckBox>().CurrentValue) AutoHarass();
+
+            // WardJump
+            if(EtcMenu["wardjump"].Cast<CheckBox>().CurrentValue) wardjump();
 
             // Orbwalker
             switch(Orbwalker.ActiveModesFlags) {
@@ -173,77 +180,74 @@ namespace Katakomba {
         }
 
         /// <summary>
-        /// Calculates proc'd mark damage if there is any.
-        /// </summary>
-        /// <param name="target"></param>
-        /// <returns></returns>
-        private static double markDamage(Obj_AI_Base target) {
-            return target.HasBuff("katarinaqmark") ? myHero.GetSpellDamage(target, SpellSlot.Q) : 0;
-        }
-
-        /// <summary>
         /// Handles ignite (doesn't work always/buggy?)
         /// </summary>
         /// <param name="target"></param>
-        private static void handleIgnite(Obj_AI_Base target) {
+        private static void HandleIgnite() {
             if(!KillStealMenu["useignite"].Cast<CheckBox>().CurrentValue) return;
             var ignite = new Spell.Targeted(IgniteSlot, 600);
-            if(ignite.IsReady() && ignite.IsInRange(target)) ignite.Cast(target);
+            if(ignite.IsReady() && ignite.IsInRange(target) && target != null) ignite.Cast(target);
         }
+
+        // helper function -> myDamage()
 
         /// <summary>
         /// Steals kills.
         /// </summary>
-        private static void killSteal() {
-            var target = TargetSelector.GetTarget(1375, DamageType.Magical);
+        private static void KillSteal() {
+            target = TargetSelector.GetTarget(1375, DamageType.Magical);
             if(target == null) return;
 
             // QEW
+            //(myHero.GetSpellDamage(target, SpellSlot.Q) + myHero.GetSpellDamage(target, SpellSlot.W) + myHero.GetSpellDamage(target, SpellSlot.E) + MarkDamage(target)) > target.Health) {
             if(Q.IsInRange(target.ServerPosition) && E.IsInRange(target.ServerPosition) && E.IsReady() && Q.IsReady() && W.IsReady() &&
-              (myHero.GetSpellDamage(target, SpellSlot.Q) + myHero.GetSpellDamage(target, SpellSlot.W) + myHero.GetSpellDamage(target, SpellSlot.E) + markDamage(target))> target.Health) {
-                Chat.Print("KS: QEW");
+              (Helpers.MyDamage(myHero, target, true, true, true) > target.Health)) {
+                Console.WriteLine("KS: QEW");
                 Q.Cast(target);
                 E.Cast(target);
                 W.Cast();
-                handleIgnite(target);
+                HandleIgnite();
                 return;
             }
 
             // EQ(W)
+            // (myHero.GetSpellDamage(target, SpellSlot.E) + myHero.GetSpellDamage(target, SpellSlot.Q) + Helpers.MarkDamage(target)) > target.Health) {
             if(E.IsInRange(target.ServerPosition) && E.IsReady() && Q.IsReady() &&
-              (myHero.GetSpellDamage(target, SpellSlot.E) + myHero.GetSpellDamage(target, SpellSlot.Q) + markDamage(target)) > target.Health) {
-                Chat.Print("KS: EQ");
+              (Helpers.MyDamage(myHero, target, true, false, true) > target.Health)) {
+                Console.WriteLine("KS: EQ");
                 E.Cast(target);
                 Q.Cast(target);
                 W.Cast();
-                handleIgnite(target);
+                HandleIgnite();
                 return;
             }
 
             // EW
+            // (myHero.GetSpellDamage(target, SpellSlot.W) + myHero.GetSpellDamage(target, SpellSlot.E)) > target.Health) {
             if(E.IsInRange(target.ServerPosition) && E.IsReady() && W.IsReady() &&
-               (myHero.GetSpellDamage(target, SpellSlot.W) + myHero.GetSpellDamage(target, SpellSlot.E)) > target.Health) {
-                Chat.Print("KS: EW");
+               (Helpers.MyDamage(myHero, target, false, true, true) > target.Health)) {
+                Console.WriteLine("KS: EW");
                 E.Cast(target);
                 W.Cast();
-                handleIgnite(target);
+                HandleIgnite();
                 return;
             }
 
             // E
-            if(E.IsInRange(target.ServerPosition) && E.IsReady() && (myHero.GetSpellDamage(target, SpellSlot.E)) > target.Health) {
-                Chat.Print("KS: E");
+            //if(E.IsInRange(target.ServerPosition) && E.IsReady() && (myHero.GetSpellDamage(target, SpellSlot.E)) > target.Health) {
+            if(E.IsInRange(target.ServerPosition) && E.IsReady() && (Helpers.MyDamage(myHero, target, false, false, true, false)) > target.Health) {
+                Console.WriteLine("KS: E");
                 E.Cast(target);
-                handleIgnite(target);
+                HandleIgnite();
                 return;
             }
 
             // Q + wardJump + Shunpo environment
             if(KillStealMenu["fleeks"].Cast<CheckBox>().CurrentValue) {
-                if((myHero.GetSpellDamage(target, SpellSlot.Q) + markDamage(target)) > target.Health && !Q.IsInRange(target.ServerPosition) && Q.IsReady()) {
-                    Chat.Print("ward ks! (1)");
-                    jumpKS(target);
-                    Chat.Print("ward ks! (2)");
+                if((Helpers.MyDamage(myHero, target, true, false, false) > target.Health) && !Q.IsInRange(target.ServerPosition) && Q.IsReady()) {
+                    Console.WriteLine("ward ks! (1)");
+                    jumpKS();
+                    Console.WriteLine("ward ks! (2)");
                     return;
                 }
             }
@@ -252,8 +256,8 @@ namespace Katakomba {
         /// <summary>
         /// Jumps and steals kills
         /// </summary>
-        /// <param name="target"></param>
-        private static void jumpKS(Obj_AI_Base target) {
+        private static void jumpKS() {
+            // Try to jump to any ward at first
             foreach(Obj_AI_Minion ward in ObjectManager.Get<Obj_AI_Minion>().Where(ward =>
                E.IsReady() && Q.IsReady() && ward.Name.ToLower().Contains("ward") &&
                ward.Distance(target.ServerPosition) < Q.Range && ward.Distance(myHero.Position) < E.Range)) {
@@ -261,6 +265,7 @@ namespace Katakomba {
                 return;
             }
 
+            // If that fails, try to jump to any hero
             foreach(Obj_AI_Base hero in ObjectManager.Get<Obj_AI_Base>().Where(hero =>
                E.IsReady() && Q.IsReady() && hero.Distance(target.ServerPosition) < Q.Range &&
                hero.Distance(myHero.Position) < E.Range && hero.IsValidTarget(E.Range))) {
@@ -268,6 +273,7 @@ namespace Katakomba {
                 return;
             }
 
+            // Finally, try a minion.
             foreach(Obj_AI_Minion minion in ObjectManager.Get<Obj_AI_Minion>().Where(minion =>
                E.IsReady() && Q.IsReady() && minion.Distance(target.ServerPosition) < Q.Range &&
                minion.Distance(myHero.Position) < E.Range && minion.IsValidTarget(E.Range))) {
@@ -275,24 +281,31 @@ namespace Katakomba {
                 return;
             }
 
+            // Cast Q if we are in range now
             if(myHero.Distance(target.Position) < Q.Range) {
                 Q.Cast(target);
                 return;
             }
 
+            // If we can't shunpo then there is no reason to even place the upcoming ward
             if(Environment.TickCount <= LastPlaced + 3000 || !E.IsReady()) return;
 
+            // Calculate the ideal position of our ward
             Vector3 position = myHero.ServerPosition + Vector3.Normalize(target.ServerPosition - myHero.ServerPosition) * 590;
 
+            // If the distance now is Q-able, wardKs away!
             if(target.Distance(position) < Q.Range) {
-                var invSlot = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Warding_Totem_Trinket || a.Id == ItemId.Vision_Ward || a.Id == ItemId.Stealth_Ward || a.Id == ItemId.Greater_Vision_Totem_Trinket || a.Id == ItemId.Greater_Stealth_Totem_Trinket);
-                if(invSlot == null) return;
+                // Find the best ward slot.
+                wardSlot = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Warding_Totem_Trinket || a.Id == ItemId.Vision_Ward || a.Id == ItemId.Stealth_Ward || a.Id == ItemId.Greater_Vision_Totem_Trinket || a.Id == ItemId.Greater_Stealth_Totem_Trinket);
+                if(wardSlot == null) return;
 
-                invSlot.Cast(position);
+                // Cast and log.
+                wardSlot.Cast(position);
                 LastWardPos = position;
                 LastPlaced = Environment.TickCount;
             }
 
+            // Last Q check, if we've jumped this will trigger.
             if(myHero.Distance(target.Position) < Q.Range) {
                 Q.Cast(target);
             }
@@ -301,29 +314,22 @@ namespace Katakomba {
         /// <summary>
         /// Main combo. OrbWalker combo MUST be unbound.
         /// </summary>
-        private static void combo() {
-            var target = TargetSelector.GetTarget(E.Range, DamageType.Magical);
+        private static void Combo() {
+            target = TargetSelector.GetTarget(E.Range, DamageType.Magical);
             if(target == null) return;
 
-            // Zhonya logic.
-            if(myHero.HealthPercent <= 15) {
-                var zhonyaslot = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Zhonyas_Hourglass);
-                if(zhonyaslot != null && Player.GetSpell(zhonyaslot.SpellSlot).IsReady) {
-                    Player.CastSpell(zhonyaslot.SpellSlot);
-                    _isChanneling = false;
-                    return;
-                }
+            // Cast Zhonya while in combo mode.
+            if(Helpers.CastZhonya(myHero)) {
+                _isChanneling = false;
+                return; // Stop comboing. No point.
             }
 
-            // If we can Q them, why not
+            // If we can Q them, why not. This will ensure that Q is in mid air until we land.
             if(Q.IsReady() && myHero.Distance(target.Position) <= Q.Range) Q.Cast(target);
 
             // E
             if(E.IsReady() && myHero.Distance(target.Position) <= E.Range) {
-                // If ultimate is not ready and there are >= 2 enemies, don't jump.
-                //if(myHero.CountEnemiesInRange(500) >= 2 && (!R.IsReady() || !(R.State == SpellState.Surpressed && R.Level > 0))) return;
-
-                // Disable orbwalking otherwise.
+                // Disable orbwalking so we don't cancel our jump (lol, this can actually happen lmfao)
                 Orbwalker.DisableAttacking.Equals(true);
                 Orbwalker.DisableMovement.Equals(true);
 
@@ -347,35 +353,35 @@ namespace Katakomba {
         /// <summary>
         /// Automatically harasses (Q+W) anyone in range.
         /// </summary>
-        public static void autoHarass() {
-            var target = TargetSelector.GetTarget(Q.Range, DamageType.Magical);
+        public static void AutoHarass() {
+            target = TargetSelector.GetTarget(Q.Range, DamageType.Magical);
             if(target.IsValidTarget()) {
                 if(Q.IsInRange(target)) Q.Cast(target);
                 if(W.IsInRange(target)) W.Cast();
             }
         }
 
-        public static void laneClear() {
-            // Soon (tm)
-        }
+        // Soon (tm)
+        public static void laneClear() {}
 
         /// <summary>
         /// Tries to flee away (orbWalker integration) by trying to jump to any ward, then hero, then minion. If all fails, casts a ward.
         /// </summary>
         public static void flee() {
-            // Try to sniff for _any_ wards
-            if(E.IsReady()) {
-                foreach(var ward in ObjectManager.Get<Obj_Ward>().Where(ward => ward.Distance(myHero.Position) <= E.Range)) {
-                    Chat.Print("Found ward and should E to it: " + ward.Position + ward.Name);
-                    E.Cast(ward);
-                    return;
-                }
+            // Check if E is ready -- if not, no point.
+            if(!E.IsReady()) return;
+
+            // Try to sniff for any wards.
+            foreach(var ward in ObjectManager.Get<Obj_Ward>().Where(ward => ward.Distance(myHero.Position) <= E.Range)) {
+                Console.WriteLine("Found ward and should E to it: " + ward.Position + ward.Name);
+                E.Cast(ward);
+                return;
             }
 
-            // Try to sniff for any hero
+            // Try to sniff for any ALLY hero
             foreach(Obj_AI_Base hero in ObjectManager.Get<Obj_AI_Base>().Where(hero => hero.Distance(myHero.Position) <= E.Range && !hero.IsDead)) {
-                if(E.IsReady() && hero.Name != myHero.Name && !hero.Name.Contains("Turret") && hero.IsAlly) {
-                    Chat.Print("Found hero and should E to it: " + hero.Position + hero.Name);
+                if(hero.Name != myHero.Name && !hero.Name.Contains("Turret") && hero.IsAlly) {
+                    Console.WriteLine("Found hero and should E to it: " + hero.Position + hero.Name);
                     E.Cast(hero);
                     return;
                 }
@@ -383,11 +389,9 @@ namespace Katakomba {
 
             // Try to sniff for any minion
             foreach(Obj_AI_Minion minion in ObjectManager.Get<Obj_AI_Minion>().Where(minion => minion.Distance(myHero.Position) <= E.Range)) {
-                if(E.IsReady()) {
-                    Chat.Print("Found minion and should E to it: " + minion.Position + minion.Name);
-                    E.Cast(minion);
-                    return;
-                }
+                Console.WriteLine("Found minion and should E to it: " + minion.Position + minion.Name);
+                E.Cast(minion);
+                return;
             }
 
             // All seem to have failed, wardjump instead.
@@ -397,24 +401,20 @@ namespace Katakomba {
         /// <summary>
         /// Tries to cast any ward/trinket and then proceed to jump on it.
         /// </summary>
-        /// <returns></returns>
         public static void wardjump() {
-            var totemward = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Warding_Totem_Trinket || a.Id == ItemId.Vision_Ward || a.Id == ItemId.Stealth_Ward || a.Id == ItemId.Greater_Vision_Totem_Trinket || a.Id == ItemId.Greater_Stealth_Totem_Trinket);
-            if(totemward == null || !Player.GetSpell(totemward.SpellSlot).IsReady) return;
+            wardSlot = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Warding_Totem_Trinket || a.Id == ItemId.Vision_Ward || a.Id == ItemId.Stealth_Ward || a.Id == ItemId.Greater_Vision_Totem_Trinket || a.Id == ItemId.Greater_Stealth_Totem_Trinket);
+            if(wardSlot == null || !Player.GetSpell(wardSlot.SpellSlot).IsReady) return;
+            
+            // Try to calculate our ideal ward position.
+            Vector3 position = myHero.ServerPosition + Vector3.Normalize(Game.CursorPos - myHero.ServerPosition) * 590;
 
-            var cursorPos = Game.CursorPos;
-            var myPos     = myHero.ServerPosition;
-            var delta     = cursorPos - myPos;
-            delta.Normalize();
+            // anti spam wards.
+            if(Environment.TickCount <= LastPlaced + 3000) return;
 
-            // anti spam wards?!
-            if(Environment.TickCount <= LastPlaced + 3000 || !E.IsReady()) return;
+            wardSlot.Cast(position);
+            if(E.IsReady()) { E.Cast(position); Console.WriteLine("Casted E @ wardposition."); }
 
-            var wardposition = myPos + delta * (600 - 5);
-            totemward.Cast(wardposition);
-            if(E.IsReady()) { E.Cast(wardposition); Chat.Print("Casted E @ wardposition."); }
-
-            LastWardPos = wardposition;
+            LastWardPos = position;
             LastPlaced = Environment.TickCount;
         }
     }
