@@ -5,6 +5,9 @@ using EloBuddy.SDK;
 using EloBuddy.SDK.Events;
 using EloBuddy.SDK.Menu;
 using EloBuddy.SDK.Menu.Values;
+using System.Drawing;
+using EloBuddy.SDK.Rendering;
+using Color = System.Drawing.Color;
 using SharpDX;
 
 namespace Katakomba {
@@ -22,6 +25,7 @@ namespace Katakomba {
 
         private static AIHeroClient target; // enemy target
         private static InventorySlot wardSlot; // where our ward resides!
+        private static string currentCombo; // Current Combo mode.
 
         // jumpKS();
         public static int LastPlaced; // Last placed tick time of the ward
@@ -68,7 +72,8 @@ namespace Katakomba {
             // Etc menu
             EtcMenu = menu.AddSubMenu("Et cetera", "KatakombaEtc");
             EtcMenu.AddGroupLabel("To be added.");
-            ComboMenu.Add("wardjump", new KeyBind("Ward Jump", false, KeyBind.BindTypes.HoldActive, 'Z'));
+            EtcMenu.Add("wardjump", new KeyBind("Ward Jump", false, KeyBind.BindTypes.HoldActive, 'Z'));
+            EtcMenu.Add("draw", new CheckBox("Enable drawings", true));
         }
 
         private static void OnLoad(EventArgs args) {
@@ -93,6 +98,7 @@ namespace Katakomba {
             Console.WriteLine("Katakomba Loaded successfully. Version " + version);
             Orbwalker.OnPreAttack     += Orbwalker_OnPreAttack;
             Player.OnProcessSpellCast += Player_OnProcessSpellCast;
+            Drawing.OnDraw            += OnDraw;
         }
 
         /// <summary>
@@ -125,6 +131,14 @@ namespace Katakomba {
         /// <returns>true if we are channeling</returns>
         private static bool InUltimate() {
             return myHero.HasBuff("KatarinaR") || Player.Instance.Spellbook.IsChanneling || myHero.HasBuff("katarinarsound");
+        }
+
+        private static void OnDraw(EventArgs args) {
+            if(!EtcMenu["draw"].Cast<CheckBox>().CurrentValue) return;
+            if(target == null) return;
+
+            var hpPos = target.HPBarPosition;
+            Drawing.DrawText(hpPos.X - 10, hpPos.Y + 40, Color.Pink, "Killable " + currentCombo);
         }
 
         /// <summary>
@@ -189,8 +203,6 @@ namespace Katakomba {
             if(ignite.IsReady() && ignite.IsInRange(target) && target != null) ignite.Cast(target);
         }
 
-        // helper function -> myDamage()
-
         /// <summary>
         /// Steals kills.
         /// </summary>
@@ -199,9 +211,9 @@ namespace Katakomba {
             if(target == null) return;
 
             // QEW
-            //(myHero.GetSpellDamage(target, SpellSlot.Q) + myHero.GetSpellDamage(target, SpellSlot.W) + myHero.GetSpellDamage(target, SpellSlot.E) + MarkDamage(target)) > target.Health) {
             if(Q.IsInRange(target.ServerPosition) && E.IsInRange(target.ServerPosition) && E.IsReady() && Q.IsReady() && W.IsReady() &&
               (Helpers.MyDamage(myHero, target, true, true, true) > target.Health)) {
+                Katakomba.currentCombo = "(QEW)";
                 Console.WriteLine("KS: QEW");
                 Q.Cast(target);
                 E.Cast(target);
@@ -211,9 +223,9 @@ namespace Katakomba {
             }
 
             // EQ(W)
-            // (myHero.GetSpellDamage(target, SpellSlot.E) + myHero.GetSpellDamage(target, SpellSlot.Q) + Helpers.MarkDamage(target)) > target.Health) {
             if(E.IsInRange(target.ServerPosition) && E.IsReady() && Q.IsReady() &&
               (Helpers.MyDamage(myHero, target, true, false, true) > target.Health)) {
+                Katakomba.currentCombo = "(EQW)";
                 Console.WriteLine("KS: EQ");
                 E.Cast(target);
                 Q.Cast(target);
@@ -223,9 +235,9 @@ namespace Katakomba {
             }
 
             // EW
-            // (myHero.GetSpellDamage(target, SpellSlot.W) + myHero.GetSpellDamage(target, SpellSlot.E)) > target.Health) {
             if(E.IsInRange(target.ServerPosition) && E.IsReady() && W.IsReady() &&
                (Helpers.MyDamage(myHero, target, false, true, true) > target.Health)) {
+                Katakomba.currentCombo = "(EW)";
                 Console.WriteLine("KS: EW");
                 E.Cast(target);
                 W.Cast();
@@ -234,8 +246,8 @@ namespace Katakomba {
             }
 
             // E
-            //if(E.IsInRange(target.ServerPosition) && E.IsReady() && (myHero.GetSpellDamage(target, SpellSlot.E)) > target.Health) {
             if(E.IsInRange(target.ServerPosition) && E.IsReady() && (Helpers.MyDamage(myHero, target, false, false, true, false)) > target.Health) {
+                Katakomba.currentCombo = "(E)";
                 Console.WriteLine("KS: E");
                 E.Cast(target);
                 HandleIgnite();
@@ -245,6 +257,7 @@ namespace Katakomba {
             // Q + wardJump + Shunpo environment
             if(KillStealMenu["fleeks"].Cast<CheckBox>().CurrentValue) {
                 if((Helpers.MyDamage(myHero, target, true, false, false) > target.Health) && !Q.IsInRange(target.ServerPosition) && Q.IsReady()) {
+                    Katakomba.currentCombo = "(WARD)";
                     Console.WriteLine("ward ks! (1)");
                     jumpKS();
                     Console.WriteLine("ward ks! (2)");
