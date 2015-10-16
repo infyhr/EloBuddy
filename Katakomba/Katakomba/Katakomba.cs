@@ -27,9 +27,13 @@ namespace Katakomba {
         private static InventorySlot wardSlot; // where our ward resides!
         private static string currentCombo; // Current Combo mode.
 
-        // jumpKS();
+        // jumpKS stuff
         public static int LastPlaced; // Last placed tick time of the ward
         public static Vector3 LastWardPos; // Last placed position of the ward
+
+        // Greezyness factor.
+        public static float greezyNess;
+        public static int lastDeath; // TickCount of when someone last died.
 
         /// <summary>
         /// EloBuddy initialization.
@@ -133,6 +137,10 @@ namespace Katakomba {
             return myHero.HasBuff("KatarinaR") || Player.Instance.Spellbook.IsChanneling || myHero.HasBuff("katarinarsound");
         }
 
+        /// <summary>
+        /// Draws custom stuff on screen. Currently draws killable targets.
+        /// </summary>
+        /// <param name="args">EventArgs</param>
         private static void OnDraw(EventArgs args) {
             if(!EtcMenu["draw"].Cast<CheckBox>().CurrentValue) return;
             if(target == null) return;
@@ -191,6 +199,15 @@ namespace Katakomba {
                     flee();
                 break;
             }
+
+            Core.DelayAction(Greezyness, 10000); // Calculate greezyness every 10 seconds.
+        }
+
+        /// <summary>
+        /// Calculates greezyness factor.
+        /// </summary>
+        public static void Greezyness() {
+            // Soon (tm)
         }
 
         /// <summary>
