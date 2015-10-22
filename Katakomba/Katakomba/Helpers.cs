@@ -2,13 +2,11 @@
 using System.Linq;
 using EloBuddy;
 using EloBuddy.SDK;
-using EloBuddy.SDK.Events;
-using EloBuddy.SDK.Menu;
-using EloBuddy.SDK.Menu.Values;
-using SharpDX;
 
 namespace Katakomba {
     class Helpers {
+        public static InventorySlot zhonyaSlot; // where our zhonya lives
+
         /// <summary>
         /// Calculates our hero's damage.
         /// </summary>
@@ -27,6 +25,10 @@ namespace Katakomba {
             if(useE)    calculation += myHero.GetSpellDamage(target, SpellSlot.E);
             if(useMark) calculation += target.HasBuff("katarinaqmark") ? myHero.GetSpellDamage(target, SpellSlot.Q) : 0;
 
+            // Consider ignite damage
+            var ignite = new Spell.Targeted(Katakomba.IgniteSlot, 600);
+            calculation += ignite.IsReady() ? myHero.GetSpellDamage(target, Katakomba.IgniteSlot) : 0;
+
             return calculation;
         }
 
@@ -37,9 +39,9 @@ namespace Katakomba {
         /// <returns>true if zhonya suceeded</returns>
         public static bool CastZhonya(AIHeroClient myHero) {
             if(myHero.HealthPercent <= 10) {
-                var zhonyaslot = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Zhonyas_Hourglass);
-                if(zhonyaslot != null && Player.GetSpell(zhonyaslot.SpellSlot).IsReady) {
-                    Player.CastSpell(zhonyaslot.SpellSlot);
+                zhonyaSlot = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Zhonyas_Hourglass);
+                if(zhonyaSlot != null && Player.GetSpell(zhonyaSlot.SpellSlot).IsReady) {
+                    Player.CastSpell(zhonyaSlot.SpellSlot);
                     return true;
                 }else {
                     // Oh no! Zhonya was down and we are almost dead! Flee out!

@@ -14,10 +14,10 @@ namespace Katakomba {
     class Katakomba {
         private static AIHeroClient myHero; // Self
         private static Spell.Targeted Q;
-        private static Spell.Active   W;
+        private static Spell.Active W;
         private static Spell.Targeted E;
-        private static Spell.Active   R;
-        private static SpellSlot      IgniteSlot; // ignite
+        private static Spell.Active R;
+        public static  SpellSlot IgniteSlot; // ignite
         private static Menu menu, ComboMenu, HarassMenu, KillStealMenu, EtcMenu; // menus
         private static bool _isChanneling; // channeling the ultimate
 
@@ -76,7 +76,7 @@ namespace Katakomba {
             // Etc menu
             EtcMenu = menu.AddSubMenu("Et cetera", "KatakombaEtc");
             EtcMenu.AddGroupLabel("To be added.");
-            EtcMenu.Add("wardjump", new KeyBind("Ward Jump", false, KeyBind.BindTypes.HoldActive, 'Z'));
+            EtcMenu.Add("WardJump", new KeyBind("Ward Jump", false, KeyBind.BindTypes.HoldActive, 'Z'));
             EtcMenu.Add("draw", new CheckBox("Enable drawings", true));
         }
 
@@ -146,7 +146,7 @@ namespace Katakomba {
             if(target == null) return;
 
             var hpPos = target.HPBarPosition;
-            Drawing.DrawText(hpPos.X - 10, hpPos.Y + 40, Color.Pink, "Killable " + currentCombo);
+            Drawing.DrawText(hpPos.X - 10, hpPos.Y + 40, Color.Pink, "Target " + currentCombo);
         }
 
         /// <summary>
@@ -170,7 +170,7 @@ namespace Katakomba {
             if(HarassMenu["autoharass"].Cast<CheckBox>().CurrentValue) AutoHarass();
 
             // WardJump
-            if(EtcMenu["wardjump"].Cast<CheckBox>().CurrentValue) wardjump();
+            if(EtcMenu["WardJump"].Cast<KeyBind>().CurrentValue) WardJump();
 
             // Orbwalker
             switch(Orbwalker.ActiveModesFlags) {
@@ -200,14 +200,18 @@ namespace Katakomba {
                 break;
             }
 
-            Core.DelayAction(Greezyness, 10000); // Calculate greezyness every 10 seconds.
+            //Core.DelayAction(Greezyness, 10000); // Calculate greezyness every 10 seconds.
         }
 
         /// <summary>
         /// Calculates greezyness factor.
         /// </summary>
         public static void Greezyness() {
-            // Soon (tm)
+            /*
+            greezynessFactor = (numofkills) * 1 + (numofdouble) * 2 + (numoftriple) * 3 + (numofquadra) * 4 + (numofpenta) * 5
+            if(kill in <1s) greezynessFactor *= 1.1;
+            ^^^^^^ -> hook onDeath event.
+            */
         }
 
         /// <summary>
@@ -277,10 +281,13 @@ namespace Katakomba {
                     Katakomba.currentCombo = "(WARD)";
                     Console.WriteLine("ward ks! (1)");
                     jumpKS();
+                    HandleIgnite();
                     Console.WriteLine("ward ks! (2)");
                     return;
                 }
             }
+
+            Katakomba.currentCombo = "";
         }
 
         /// <summary>
@@ -326,7 +333,7 @@ namespace Katakomba {
             // If the distance now is Q-able, wardKs away!
             if(target.Distance(position) < Q.Range) {
                 // Find the best ward slot.
-                wardSlot = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Warding_Totem_Trinket || a.Id == ItemId.Vision_Ward || a.Id == ItemId.Stealth_Ward || a.Id == ItemId.Greater_Vision_Totem_Trinket || a.Id == ItemId.Greater_Stealth_Totem_Trinket);
+                wardSlot = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Warding_Totem_Trinket || a.Id == ItemId.Vision_Ward || a.Id == ItemId.Stealth_Ward || a.Id == ItemId.Greater_Vision_Totem_Trinket || a.Id == ItemId.Greater_Stealth_Totem_Trinket || a.Id == ItemId.Sightstone);
                 if(wardSlot == null) return;
 
                 // Cast and log.
@@ -424,15 +431,15 @@ namespace Katakomba {
                 return;
             }
 
-            // All seem to have failed, wardjump instead.
-            wardjump();
+            // All seem to have failed, WardJump instead.
+            WardJump();
         }
 
         /// <summary>
         /// Tries to cast any ward/trinket and then proceed to jump on it.
         /// </summary>
-        public static void wardjump() {
-            wardSlot = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Warding_Totem_Trinket || a.Id == ItemId.Vision_Ward || a.Id == ItemId.Stealth_Ward || a.Id == ItemId.Greater_Vision_Totem_Trinket || a.Id == ItemId.Greater_Stealth_Totem_Trinket);
+        public static void WardJump() {
+            wardSlot = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Warding_Totem_Trinket || a.Id == ItemId.Vision_Ward || a.Id == ItemId.Stealth_Ward || a.Id == ItemId.Greater_Vision_Totem_Trinket || a.Id == ItemId.Greater_Stealth_Totem_Trinket || a.Id == ItemId.Sightstone);
             if(wardSlot == null || !Player.GetSpell(wardSlot.SpellSlot).IsReady) return;
             
             // Try to calculate our ideal ward position.
@@ -442,7 +449,14 @@ namespace Katakomba {
             if(Environment.TickCount <= LastPlaced + 3000) return;
 
             wardSlot.Cast(position);
-            if(E.IsReady()) { E.Cast(position); Console.WriteLine("Casted E @ wardposition."); }
+            if(E.IsReady()) {
+                E.Cast(position);
+                // if it doesn't work then try again
+                foreach(var ward in ObjectManager.Get<Obj_Ward>().Where(ward => ward.Distance(myHero.Position) <= E.Range)) {
+                    E.Cast(ward);
+                    return;
+                }
+            }
 
             LastWardPos = position;
             LastPlaced = Environment.TickCount;
