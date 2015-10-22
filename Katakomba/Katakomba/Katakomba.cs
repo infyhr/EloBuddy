@@ -21,7 +21,7 @@ namespace Katakomba {
         private static Menu menu, ComboMenu, HarassMenu, KillStealMenu, EtcMenu; // menus
         private static bool _isChanneling; // channeling the ultimate
 
-        private static string version = "1.1.2.0"; // Katakomba version
+        private static string version = "1.3.0.0"; // Katakomba version
 
         private static AIHeroClient target; // enemy target
         private static InventorySlot wardSlot; // where our ward resides!
@@ -99,7 +99,7 @@ namespace Katakomba {
 
             // Main functions
             Game.OnTick += OnTick;
-            Console.WriteLine("Katakomba Loaded successfully. Version " + version);
+            Chat.Print("Katakomba Loaded successfully. Version " + version);
             Orbwalker.OnPreAttack     += Orbwalker_OnPreAttack;
             Player.OnProcessSpellCast += Player_OnProcessSpellCast;
             Drawing.OnDraw            += OnDraw;
@@ -439,9 +439,11 @@ namespace Katakomba {
         /// Tries to cast any ward/trinket and then proceed to jump on it.
         /// </summary>
         public static void WardJump() {
+            Orbwalker.OrbwalkTo(Game.CursorPos.Extend(Game.CursorPos, 200).To3D());
             wardSlot = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Warding_Totem_Trinket || a.Id == ItemId.Vision_Ward || a.Id == ItemId.Stealth_Ward || a.Id == ItemId.Greater_Vision_Totem_Trinket || a.Id == ItemId.Greater_Stealth_Totem_Trinket || a.Id == ItemId.Sightstone);
             if(wardSlot == null || !Player.GetSpell(wardSlot.SpellSlot).IsReady) return;
-            
+            if(!E.IsReady()) return;
+
             // Try to calculate our ideal ward position.
             Vector3 position = myHero.ServerPosition + Vector3.Normalize(Game.CursorPos - myHero.ServerPosition) * 590;
 
@@ -449,17 +451,14 @@ namespace Katakomba {
             if(Environment.TickCount <= LastPlaced + 3000) return;
 
             wardSlot.Cast(position);
-            if(E.IsReady()) {
-                E.Cast(position);
-                // if it doesn't work then try again
-                foreach(var ward in ObjectManager.Get<Obj_Ward>().Where(ward => ward.Distance(myHero.Position) <= E.Range)) {
-                    E.Cast(ward);
-                    return;
-                }
-            }
 
             LastWardPos = position;
-            LastPlaced = Environment.TickCount;
+            LastPlaced  = Environment.TickCount;
+
+            Core.DelayAction(delegate {
+                Player.CastSpell(SpellSlot.E, ObjectManager.Get<Obj_AI_Base>().FirstOrDefault(a => a.Distance(myHero.ServerPosition) <= E.Range && a.Name.Contains("Ward")));
+                //Player.CastSpell(SpellSlot.E, position);
+            }, 100);
         }
     }
 }
