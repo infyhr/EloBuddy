@@ -21,7 +21,7 @@ namespace Katakomba {
         private static Menu menu, ComboMenu, HarassMenu, KillStealMenu, EtcMenu; // menus
         private static bool _isChanneling; // channeling the ultimate
 
-        private static string version = "1.3.0.0"; // Katakomba version
+        private static string version = "1.4.0.0"; // Katakomba version
 
         private static AIHeroClient target; // enemy target
         private static InventorySlot wardSlot; // where our ward resides!
