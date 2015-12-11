@@ -32,8 +32,9 @@ namespace Katakomba {
         public static Vector3 LastWardPos; // Last placed position of the ward
 
         // Greezyness factor.
-        public static float greezyNess;
+        public static int greezyNess;
         public static int lastDeath; // TickCount of when someone last died.
+        public static Vector2 wts = new Vector2(Drawing.Width - 210f, 25f); // Vector to screen drawing position (game width).
 
         /// <summary>
         /// EloBuddy initialization.
@@ -97,12 +98,34 @@ namespace Katakomba {
             // Initialize the menu
             InitMenu();
 
+            // Set the tick time
+            lastDeath = Environment.TickCount;
+            greezyNess = 1;
+
             // Main functions
             Game.OnTick += OnTick;
             Chat.Print("Katakomba Loaded successfully. Version " + version);
             Orbwalker.OnPreAttack     += Orbwalker_OnPreAttack;
             Player.OnProcessSpellCast += Player_OnProcessSpellCast;
             Drawing.OnDraw            += OnDraw;
+            Game.OnNotify             += OnNotify;
+        }
+
+        private static void OnNotify(GameNotifyEventArgs args) {
+            if(args.EventId != GameEventId.OnChampionKill) return; // We're only interested in kills
+            Obj_AI_Base Killer = ObjectManager.GetUnitByNetworkId<Obj_AI_Base>(args.NetworkId); // Get the killer
+
+            if(Killer.Name != myHero.Name) return; // We aren't the killer, ignore!
+
+            // We killed someone. If it happened in the last second, award accordingly.
+            int nowDeath = Environment.TickCount;
+            int delta    = nowDeath - lastDeath;
+            if(delta <= 1000) {
+                greezyNess *= 2;
+                Chat.Print(delta + "ms between kills! Very greezy.");
+            }
+
+            lastDeath = nowDeath;
         }
 
         /// <summary>
@@ -143,6 +166,7 @@ namespace Katakomba {
         /// <param name="args">EventArgs</param>
         private static void OnDraw(EventArgs args) {
             if(!EtcMenu["draw"].Cast<CheckBox>().CurrentValue) return;
+            Drawing.DrawText(wts[0], wts[1]+10, Color.Red, "G factor: " + greezyNess.ToString() + "x");
             if(target == null) return;
 
             var hpPos = target.HPBarPosition;
@@ -200,13 +224,26 @@ namespace Katakomba {
                 break;
             }
 
-            //Core.DelayAction(Greezyness, 10000); // Calculate greezyness every 10 seconds.
+            Core.DelayAction(Greezyness, 10000); // Calculate greezyness every 10 seconds.
         }
 
         /// <summary>
         /// Calculates greezyness factor.
         /// </summary>
         public static void Greezyness() {
+            int newGreezyness;
+            // Greezyness formula.
+            newGreezyness = (myHero.ChampionsKilled + 2 * myHero.DoubleKills + 3 * myHero.TripleKills + 4 * myHero.QuadraKills + 5 * myHero.PentaKills)+1;
+            newGreezyness += myHero.Assists;
+
+            // Compare the now calculated greezyness with the object's one.
+            if(newGreezyness != greezyNess) {
+                // If they differ, let the user know.
+                Chat.Print("+" + (newGreezyness-greezyNess).ToString() + " greezyness factor");
+            }
+
+            // Update the object variable so it can be drawn correctly.
+            greezyNess = newGreezyness;
             /*
             greezynessFactor = (numofkills) * 1 + (numofdouble) * 2 + (numoftriple) * 3 + (numofquadra) * 4 + (numofpenta) * 5
             if(kill in <1s) greezynessFactor *= 1.1;

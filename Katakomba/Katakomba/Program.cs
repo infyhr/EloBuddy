@@ -5,7 +5,13 @@ using EloBuddy.SDK.Events;
 namespace Katakomba {
     class Program {
         static void Main(string[] args) {
-            Loading.OnLoadingComplete += Game_OnStart;
+            if(args != null) {
+                try {
+                    Loading.OnLoadingComplete += Game_OnStart;
+                } catch(Exception ex) {
+                    Console.WriteLine(ex.Message);
+                }
+            }
         }
 
         private static void Game_OnStart(EventArgs args) {
