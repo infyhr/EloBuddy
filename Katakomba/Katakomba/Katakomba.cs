@@ -21,7 +21,7 @@ namespace Katakomba {
         private static Menu menu, ComboMenu, HarassMenu, KillStealMenu, EtcMenu; // menus
         private static bool _isChanneling; // channeling the ultimate
 
-        private static string version = "1.4.0.0"; // Katakomba version
+        private static string version = "1.4.1.0"; // Katakomba version
 
         private static AIHeroClient target; // enemy target
         private static InventorySlot wardSlot; // where our ward resides!
@@ -81,6 +81,10 @@ namespace Katakomba {
             EtcMenu.Add("draw", new CheckBox("Enable drawings", true));
         }
 
+        /// <summary>
+        /// Loads when the script is injected (successfully, hopefully).
+        /// </summary>
+        /// <param name="args">Event arguments</param>
         private static void OnLoad(EventArgs args) {
             // Register out champion
             myHero = ObjectManager.Player;
@@ -111,21 +115,51 @@ namespace Katakomba {
             Game.OnNotify             += OnNotify;
         }
 
+        /// <summary>
+        /// Gets called whenever a global event happens
+        /// </summary>
+        /// <param name="args">Event arguments</param>
         private static void OnNotify(GameNotifyEventArgs args) {
-            if(args.EventId != GameEventId.OnChampionKill) return; // We're only interested in kills
-            Obj_AI_Base Killer = ObjectManager.GetUnitByNetworkId<Obj_AI_Base>(args.NetworkId); // Get the killer
+            switch(args.EventId) {
+                case GameEventId.OnChampionDie:
+                    onDeath(args);
+                break;
+                case GameEventId.OnChampionKill:
+                    onKill(args);
+                break;
+            }
+        }
 
+        /// <summary>
+        /// Gets called whenever someone kills someone else or themselves.
+        /// </summary>
+        /// <param name="args">Event arguments</param>
+        private static void onKill(GameNotifyEventArgs args) {
+            Obj_AI_Base Killer = ObjectManager.GetUnitByNetworkId<Obj_AI_Base>(args.NetworkId); // Get the killer
             if(Killer.Name != myHero.Name) return; // We aren't the killer, ignore!
 
             // We killed someone. If it happened in the last second, award accordingly.
             int nowDeath = Environment.TickCount;
-            int delta    = nowDeath - lastDeath;
+            int delta = nowDeath - lastDeath;
             if(delta <= 1000) {
                 greezyNess *= 2;
-                Chat.Print(delta + "ms between kills! Very greezy.");
+                Chat.Print(delta + "ms between kills! Very greezy. Greezyness doubled.");
             }
 
             lastDeath = nowDeath;
+        }
+
+        /// <summary>
+        /// Gets called whenever someone dies.
+        /// </summary>
+        /// <param name="args">Event arguments</param>
+        private static void onDeath(GameNotifyEventArgs args) {
+            Obj_AI_Base Victim = ObjectManager.GetUnitByNetworkId<Obj_AI_Base>(args.NetworkId); // Get the victim
+            if(Victim.Name != myHero.Name) return;
+
+            // We've been murdered. Time to lower our greezyness level by the number of how many times we have died.
+            greezyNess -= myHero.Deaths;
+            Chat.Print("-" + myHero.Deaths + " greezyness.");
         }
 
         /// <summary>
@@ -201,6 +235,7 @@ namespace Katakomba {
                 // OrbWalker combomode
                 case Orbwalker.ActiveModes.Combo:
                     // This must not be bound.
+                    Chat.Print("unbind me!");
                 break;
 
                 // OrbWalker harass, we don't care about.
@@ -232,6 +267,7 @@ namespace Katakomba {
         /// </summary>
         public static void Greezyness() {
             int newGreezyness;
+
             // Greezyness formula.
             newGreezyness = (myHero.ChampionsKilled + 2 * myHero.DoubleKills + 3 * myHero.TripleKills + 4 * myHero.QuadraKills + 5 * myHero.PentaKills)+1;
             newGreezyness += myHero.Assists;
@@ -244,11 +280,6 @@ namespace Katakomba {
 
             // Update the object variable so it can be drawn correctly.
             greezyNess = newGreezyness;
-            /*
-            greezynessFactor = (numofkills) * 1 + (numofdouble) * 2 + (numoftriple) * 3 + (numofquadra) * 4 + (numofpenta) * 5
-            if(kill in <1s) greezynessFactor *= 1.1;
-            ^^^^^^ -> hook onDeath event.
-            */
         }
 
         /// <summary>
