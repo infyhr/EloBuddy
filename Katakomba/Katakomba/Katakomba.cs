@@ -21,7 +21,7 @@ namespace Katakomba {
         private static Menu menu, ComboMenu, HarassMenu, KillStealMenu, EtcMenu; // menus
         private static bool _isChanneling; // channeling the ultimate
 
-        private static string version = "1.4.1.0"; // Katakomba version
+        private static string version = "1.5.0.0"; // Katakomba version
 
         private static AIHeroClient target; // enemy target
         private static InventorySlot wardSlot; // where our ward resides!
@@ -71,14 +71,20 @@ namespace Katakomba {
             KillStealMenu = menu.AddSubMenu("KillSteal", "KatakombaKillSteal");
             KillStealMenu.AddGroupLabel("KillSteal Settings");
             KillStealMenu.Add("killsteal", new CheckBox("Do Killsteal?", true));
-            KillStealMenu.Add("fleeks", new CheckBox("Flee KS", true));
+            KillStealMenu.Add("fleeks",    new CheckBox("Flee KS", true));
             KillStealMenu.Add("useignite", new CheckBox("Use ignite?", true));
 
             // Etc menu
             EtcMenu = menu.AddSubMenu("Et cetera", "KatakombaEtc");
             EtcMenu.AddGroupLabel("To be added.");
-            EtcMenu.Add("WardJump", new KeyBind("Ward Jump", false, KeyBind.BindTypes.HoldActive, 'Z'));
-            EtcMenu.Add("draw", new CheckBox("Enable drawings", true));
+            EtcMenu.Add("WardJump",   new KeyBind("Ward Jump", false, KeyBind.BindTypes.HoldActive, 'Z'));
+            EtcMenu.Add("draw",       new CheckBox("Enable ALL drawings", true));
+            EtcMenu.AddSeparator();
+            EtcMenu.Add("drawg", new CheckBox("Draw Q bounce radius?", true));
+            EtcMenu.Add("drawbounce", new CheckBox("Draw Greezyness?", true));
+            EtcMenu.AddSeparator();
+            EtcMenu.Add("usezhonya", new CheckBox("Use Zhonya", true));
+            EtcMenu.Add("zhealth", new Slider("Health %", 10));
         }
 
         /// <summary>
@@ -199,12 +205,30 @@ namespace Katakomba {
         /// </summary>
         /// <param name="args">EventArgs</param>
         private static void OnDraw(EventArgs args) {
+            // Check if the drawings are disabled, if they are just stop.
             if(!EtcMenu["draw"].Cast<CheckBox>().CurrentValue) return;
-            Drawing.DrawText(wts[0], wts[1]+10, Color.Red, "G factor: " + greezyNess.ToString() + "x");
-            if(target == null) return;
 
+            // Draw the current target
+            if(target == null) return;
             var hpPos = target.HPBarPosition;
             Drawing.DrawText(hpPos.X - 10, hpPos.Y + 40, Color.Pink, "Target " + currentCombo);
+
+            // Draw the Greezyness factor
+            if(EtcMenu["drawg"].Cast<CheckBox>().CurrentValue) {
+                Drawing.DrawText(wts[0], wts[1] + 10, Color.Red, "G factor: " + greezyNess.ToString() + "x");
+            }
+
+            // Draw the bounce radius.
+            if(EtcMenu["drawbounce"].Cast<CheckBox>().CurrentValue) {
+                // Check if Q is ready.
+                if(!Q.IsReady()) return;
+
+                // Get the last (furthest) minion in Q range.
+                var lastCreep = ObjectManager.Get<Obj_AI_Minion>().Where(m => m.IsValidTarget(Q.Range)).LastOrDefault();
+
+                // Draw the circle
+                Drawing.DrawCircle(lastCreep.Position, Q.Range, Color.LightSeaGreen);
+            }
         }
 
         /// <summary>
@@ -259,27 +283,8 @@ namespace Katakomba {
                 break;
             }
 
-            Core.DelayAction(Greezyness, 10000); // Calculate greezyness every 10 seconds.
-        }
-
-        /// <summary>
-        /// Calculates greezyness factor.
-        /// </summary>
-        public static void Greezyness() {
-            int newGreezyness;
-
-            // Greezyness formula.
-            newGreezyness = (myHero.ChampionsKilled + 2 * myHero.DoubleKills + 3 * myHero.TripleKills + 4 * myHero.QuadraKills + 5 * myHero.PentaKills)+1;
-            newGreezyness += myHero.Assists;
-
-            // Compare the now calculated greezyness with the object's one.
-            if(newGreezyness != greezyNess) {
-                // If they differ, let the user know.
-                Chat.Print("+" + (newGreezyness-greezyNess).ToString() + " greezyness factor");
-            }
-
-            // Update the object variable so it can be drawn correctly.
-            greezyNess = newGreezyness;
+            // Calculate greezyness every 10 seconds.
+            Core.DelayAction(delegate { Helpers.Greezyness(myHero); }, 10000);
         }
 
         /// <summary>
@@ -303,11 +308,11 @@ namespace Katakomba {
             if(Q.IsInRange(target.ServerPosition) && E.IsInRange(target.ServerPosition) && E.IsReady() && Q.IsReady() && W.IsReady() &&
               (Helpers.MyDamage(myHero, target, true, true, true) > target.Health)) {
                 Katakomba.currentCombo = "(QEW)";
-                Console.WriteLine("KS: QEW");
                 Q.Cast(target);
                 E.Cast(target);
                 W.Cast();
                 HandleIgnite();
+                Console.WriteLine("KS: QEW");
                 return;
             }
 
@@ -315,11 +320,11 @@ namespace Katakomba {
             if(E.IsInRange(target.ServerPosition) && E.IsReady() && Q.IsReady() &&
               (Helpers.MyDamage(myHero, target, true, false, true) > target.Health)) {
                 Katakomba.currentCombo = "(EQW)";
-                Console.WriteLine("KS: EQ");
                 E.Cast(target);
                 Q.Cast(target);
                 W.Cast();
                 HandleIgnite();
+                Console.WriteLine("KS: EQ");
                 return;
             }
 
@@ -327,19 +332,19 @@ namespace Katakomba {
             if(E.IsInRange(target.ServerPosition) && E.IsReady() && W.IsReady() &&
                (Helpers.MyDamage(myHero, target, false, true, true) > target.Health)) {
                 Katakomba.currentCombo = "(EW)";
-                Console.WriteLine("KS: EW");
                 E.Cast(target);
                 W.Cast();
                 HandleIgnite();
+                Console.WriteLine("KS: EW");
                 return;
             }
 
             // E
             if(E.IsInRange(target.ServerPosition) && E.IsReady() && (Helpers.MyDamage(myHero, target, false, false, true, false)) > target.Health) {
                 Katakomba.currentCombo = "(E)";
-                Console.WriteLine("KS: E");
                 E.Cast(target);
                 HandleIgnite();
+                Console.WriteLine("KS: E");
                 return;
             }
 
@@ -423,10 +428,12 @@ namespace Katakomba {
             target = TargetSelector.GetTarget(E.Range, DamageType.Magical);
             if(target == null) return;
 
-            // Cast Zhonya while in combo mode.
-            if(Helpers.CastZhonya(myHero)) {
-                _isChanneling = false;
-                return; // Stop comboing. No point.
+            // Cast Zhonya while holding こもぶ.
+            if(EtcMenu["usezhonya"].Cast<CheckBox>().CurrentValue) {
+                if(Helpers.CastZhonya(myHero, EtcMenu["zhealth"].Cast<Slider>().CurrentValue)) {
+                    _isChanneling = false;
+                    return; // Stop comboing. No point.
+                }
             }
 
             // If we can Q them, why not. This will ensure that Q is in mid air until we land.

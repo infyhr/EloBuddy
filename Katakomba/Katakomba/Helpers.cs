@@ -5,7 +5,8 @@ using EloBuddy.SDK;
 
 namespace Katakomba {
     class Helpers {
-        public static InventorySlot zhonyaSlot; // where our zhonya lives
+        //public static InventorySlot zhonyaSlot; // where our zhonya lives
+        public static Item zhonya; // Zhonya test
 
         /// <summary>
         /// Calculates our hero's damage.
@@ -37,20 +38,36 @@ namespace Katakomba {
         /// </summary>
         /// <param name="myHero">AIHeroClient reference -- ourselves</param>
         /// <returns>true if zhonya suceeded</returns>
-        public static bool CastZhonya(AIHeroClient myHero) {
-            if(myHero.HealthPercent <= 10) {
-                zhonyaSlot = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Zhonyas_Hourglass);
-                if(zhonyaSlot != null && Player.GetSpell(zhonyaSlot.SpellSlot).IsReady) {
-                    Player.CastSpell(zhonyaSlot.SpellSlot);
-                    return true;
-                }else {
-                    // Oh no! Zhonya was down and we are almost dead! Flee out!
-                    Console.WriteLine("Zhonya down -> trying to flee out!");
-                    Katakomba.flee();
-                }
+        public static bool CastZhonya(AIHeroClient myHero, int zHealth) {
+            zhonya = new Item((int)ItemId.Zhonyas_Hourglass);
+            if(zhonya == null || !zhonya.IsReady() || !zhonya.IsOwned()) return false;
+
+            if(myHero.HealthPercent <= zHealth) {
+                zhonya.Cast();
+                return true;
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Calculates greezyness factor.
+        /// </summary>
+        public static void Greezyness(AIHeroClient myHero) {
+            int newGreezyness;
+
+            // Greezyness formula.
+            newGreezyness = (myHero.ChampionsKilled + 2 * myHero.DoubleKills + 3 * myHero.TripleKills + 4 * myHero.QuadraKills + 5 * myHero.PentaKills) + 1;
+            newGreezyness += myHero.Assists;
+
+            // Compare the now calculated greezyness with the object's one.
+            if(newGreezyness != Katakomba.greezyNess) {
+                // If they differ, let the user know.
+                Chat.Print("+" + (newGreezyness - Katakomba.greezyNess).ToString() + " greezyness factor");
+            }
+
+            // Update the object variable so it can be drawn correctly.
+            Katakomba.greezyNess = newGreezyness;
         }
     }
 }
