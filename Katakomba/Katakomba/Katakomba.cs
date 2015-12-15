@@ -208,11 +208,6 @@ namespace Katakomba {
             // Check if the drawings are disabled, if they are just stop.
             if(!EtcMenu["draw"].Cast<CheckBox>().CurrentValue) return;
 
-            // Draw the current target
-            if(target == null) return;
-            var hpPos = target.HPBarPosition;
-            Drawing.DrawText(hpPos.X - 10, hpPos.Y + 40, Color.Pink, "Target " + currentCombo);
-
             // Draw the Greezyness factor
             if(EtcMenu["drawg"].Cast<CheckBox>().CurrentValue) {
                 Drawing.DrawText(wts[0], wts[1] + 10, Color.Red, "G factor: " + greezyNess.ToString() + "x");
@@ -221,14 +216,20 @@ namespace Katakomba {
             // Draw the bounce radius.
             if(EtcMenu["drawbounce"].Cast<CheckBox>().CurrentValue) {
                 // Check if Q is ready.
-                if(!Q.IsReady()) return;
+                if(!Q.IsReady() || target == null) return;
 
                 // Get the last (furthest) minion in Q range.
-                var lastCreep = ObjectManager.Get<Obj_AI_Minion>().Where(m => m.IsValidTarget(Q.Range)).LastOrDefault();
+                var lastCreep = ObjectManager.Get<Obj_AI_Minion>().Where(m => m.IsValidTarget(Q.Range) && m.IsEnemy).LastOrDefault();
+                if(!lastCreep.IsValid()) return;
 
                 // Draw the circle
-                Drawing.DrawCircle(lastCreep.Position, Q.Range, Color.LightSeaGreen);
+                Drawing.DrawCircle(lastCreep.Position, 200, Color.ForestGreen);
             }
+            
+            // Draw the current target
+            if(target == null) return;
+            var hpPos = target.HPBarPosition;
+            Drawing.DrawText(hpPos.X - 10, hpPos.Y + 40, Color.Pink, "Target " + currentCombo);
         }
 
         /// <summary>
@@ -406,7 +407,7 @@ namespace Katakomba {
             // If the distance now is Q-able, wardKs away!
             if(target.Distance(position) < Q.Range) {
                 // Find the best ward slot.
-                wardSlot = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Warding_Totem_Trinket || a.Id == ItemId.Vision_Ward || a.Id == ItemId.Stealth_Ward || a.Id == ItemId.Greater_Vision_Totem_Trinket || a.Id == ItemId.Greater_Stealth_Totem_Trinket || a.Id == ItemId.Sightstone);
+                wardSlot = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Warding_Totem_Trinket || a.Id == ItemId.Vision_Ward || a.Id == ItemId.Greater_Vision_Totem_Trinket || a.Id == ItemId.Greater_Stealth_Totem_Trinket); // || ItemId.Sightsone -> buggy
                 if(wardSlot == null) return;
 
                 // Cast and log.
@@ -515,7 +516,7 @@ namespace Katakomba {
         /// </summary>
         public static void WardJump() {
             Orbwalker.OrbwalkTo(Game.CursorPos.Extend(Game.CursorPos, 200).To3D());
-            wardSlot = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Warding_Totem_Trinket || a.Id == ItemId.Vision_Ward || a.Id == ItemId.Stealth_Ward || a.Id == ItemId.Greater_Vision_Totem_Trinket || a.Id == ItemId.Greater_Stealth_Totem_Trinket || a.Id == ItemId.Sightstone);
+            wardSlot = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Warding_Totem_Trinket || a.Id == ItemId.Greater_Vision_Totem_Trinket || a.Id == ItemId.Greater_Stealth_Totem_Trinket);
             if(wardSlot == null || !Player.GetSpell(wardSlot.SpellSlot).IsReady) return;
             if(!E.IsReady()) return;
 
@@ -531,8 +532,10 @@ namespace Katakomba {
             LastPlaced  = Environment.TickCount;
 
             Core.DelayAction(delegate {
-                Player.CastSpell(SpellSlot.E, ObjectManager.Get<Obj_AI_Base>().FirstOrDefault(a => a.Distance(myHero.ServerPosition) <= E.Range && a.Name.Contains("Ward")));
-                //Player.CastSpell(SpellSlot.E, position);
+                Console.Write("SHOULD JUMP?");
+                Player.CastSpell(SpellSlot.E, ObjectManager.Get<Obj_AI_Base>().FirstOrDefault(a => a.Distance(myHero.ServerPosition) <= E.Range && ( a.Name.ToLower().Contains("ward") || a.Name.ToLower().Contains("totem") || a.Name.ToLower().Contains("trinket") ) ));
+                Player.CastSpell(SpellSlot.E, position);
+                E.Cast(position);
             }, 100);
         }
     }
