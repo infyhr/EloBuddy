@@ -18,7 +18,7 @@ namespace Katakomba {
         private static Spell.Targeted E;
         private static Spell.Active R;
         public static  SpellSlot IgniteSlot; // ignite
-        private static Menu menu, ComboMenu, HarassMenu, KillStealMenu, EtcMenu; // menus
+        private static Menu menu, ComboMenu, HarassMenu, KillStealMenu, EtcMenu, DrawingsMenu; // menus
         private static bool _isChanneling; // channeling the ultimate
 
         private static string version = "1.5.0.0"; // Katakomba version
@@ -74,16 +74,20 @@ namespace Katakomba {
             KillStealMenu.Add("fleeks",    new CheckBox("Flee KS", true));
             KillStealMenu.Add("useignite", new CheckBox("Use ignite?", true));
 
+            // Drawings menu
+            DrawingsMenu = menu.AddSubMenu("Drawings", "KatakombaDrawings");
+            DrawingsMenu.Add("draw", new CheckBox("Enable ALL drawings", true));
+            DrawingsMenu.AddSeparator();
+            DrawingsMenu.Add("drawq", new CheckBox("Draw Q radius?", true));
+            DrawingsMenu.Add("drawg", new CheckBox("Draw Q bounce radius?", true));
+            DrawingsMenu.Add("drawbounce", new CheckBox("Draw Greezyness?", true));
+
             // Etc menu
             EtcMenu = menu.AddSubMenu("Et cetera", "KatakombaEtc");
             EtcMenu.AddGroupLabel("To be added.");
             EtcMenu.Add("WardJump",   new KeyBind("Ward Jump", false, KeyBind.BindTypes.HoldActive, 'Z'));
-            EtcMenu.Add("draw",       new CheckBox("Enable ALL drawings", true));
             EtcMenu.AddSeparator();
-            EtcMenu.Add("drawg", new CheckBox("Draw Q bounce radius?", true));
-            EtcMenu.Add("drawbounce", new CheckBox("Draw Greezyness?", true));
-            EtcMenu.AddSeparator();
-            EtcMenu.Add("usezhonya", new CheckBox("Use Zhonya", true));
+            EtcMenu.Add("usezhonya", new CheckBox("Use Zhonya (Combo only)", true));
             EtcMenu.Add("zhealth", new Slider("Health %", 10));
         }
 
@@ -206,17 +210,17 @@ namespace Katakomba {
         /// <param name="args">EventArgs</param>
         private static void OnDraw(EventArgs args) {
             // Check if the drawings are disabled, if they are just stop.
-            if(!EtcMenu["draw"].Cast<CheckBox>().CurrentValue) return;
+            if(!DrawingsMenu["draw"].Cast<CheckBox>().CurrentValue) return;
 
             // Draw the Greezyness factor
-            if(EtcMenu["drawg"].Cast<CheckBox>().CurrentValue) {
+            if(DrawingsMenu["drawg"].Cast<CheckBox>().CurrentValue) {
                 Drawing.DrawText(wts[0], wts[1] + 10, Color.Red, "G factor: " + greezyNess.ToString() + "x");
             }
 
             // Draw the bounce radius.
-            if(EtcMenu["drawbounce"].Cast<CheckBox>().CurrentValue) {
+            if(DrawingsMenu["drawbounce"].Cast<CheckBox>().CurrentValue) {
                 // Check if Q is ready.
-                if(!Q.IsReady() || target == null) return;
+                if(!Q.IsReady()) return;
 
                 // Get the last (furthest) minion in Q range.
                 var lastCreep = ObjectManager.Get<Obj_AI_Minion>().Where(m => m.IsValidTarget(Q.Range) && m.IsEnemy).LastOrDefault();
@@ -226,7 +230,12 @@ namespace Katakomba {
                 Drawing.DrawCircle(lastCreep.Position, 200, Color.ForestGreen);
             }
             
-            // Draw the current target
+            if(DrawingsMenu["drawq"].Cast<CheckBox>().CurrentValue) {
+                // Draw Q radius
+                Drawing.DrawCircle(myHero.Position, Q.Range, Color.LightYellow);
+            }
+
+            // Draw the current target always
             if(target == null) return;
             var hpPos = target.HPBarPosition;
             Drawing.DrawText(hpPos.X - 10, hpPos.Y + 40, Color.Pink, "Target " + currentCombo);
@@ -429,7 +438,7 @@ namespace Katakomba {
             target = TargetSelector.GetTarget(E.Range, DamageType.Magical);
             if(target == null) return;
 
-            // Cast Zhonya while holding こもぶ.
+            // Cast Zhonya while holding こもぶ。
             if(EtcMenu["usezhonya"].Cast<CheckBox>().CurrentValue) {
                 if(Helpers.CastZhonya(myHero, EtcMenu["zhealth"].Cast<Slider>().CurrentValue)) {
                     _isChanneling = false;
@@ -438,10 +447,10 @@ namespace Katakomba {
             }
 
             // If we can Q them, why not. This will ensure that Q is in mid air until we land.
-            if(Q.IsReady() && myHero.Distance(target.Position) <= Q.Range) Q.Cast(target);
+            if(Q.IsReady() && myHero.Distance(target.Position) <= Q.Range && !InUltimate()) Q.Cast(target);
 
             // E
-            if(E.IsReady() && myHero.Distance(target.Position) <= E.Range) {
+            if(E.IsReady() && myHero.Distance(target.Position) <= E.Range && !InUltimate()) {
                 // Disable orbwalking so we don't cancel our jump (lol, this can actually happen lmfao)
                 Orbwalker.DisableAttacking.Equals(true);
                 Orbwalker.DisableMovement.Equals(true);
@@ -451,7 +460,7 @@ namespace Katakomba {
             }
 
             // W
-            if(W.IsReady() && myHero.Distance(target.Position) <= W.Range && Q.IsOnCooldown) W.Cast();
+            if(W.IsReady() && myHero.Distance(target.Position) <= W.Range && Q.IsOnCooldown && !InUltimate()) W.Cast();
 
             // R
             if(R.IsReady() && myHero.CountEnemiesInRange(R.Range) > 0) {
@@ -515,10 +524,12 @@ namespace Katakomba {
         /// Tries to cast any ward/trinket and then proceed to jump on it.
         /// </summary>
         public static void WardJump() {
+            if(myHero.IsDead || !E.IsReady()) return; //　しりません　どして。。。
+
+            // Walk to cursor and try to grab the wardSlot
             Orbwalker.OrbwalkTo(Game.CursorPos.Extend(Game.CursorPos, 200).To3D());
             wardSlot = myHero.InventoryItems.FirstOrDefault(a => a.Id == ItemId.Warding_Totem_Trinket || a.Id == ItemId.Greater_Vision_Totem_Trinket || a.Id == ItemId.Greater_Stealth_Totem_Trinket);
             if(wardSlot == null || !Player.GetSpell(wardSlot.SpellSlot).IsReady) return;
-            if(!E.IsReady()) return;
 
             // Try to calculate our ideal ward position.
             Vector3 position = myHero.ServerPosition + Vector3.Normalize(Game.CursorPos - myHero.ServerPosition) * 590;
