@@ -21,7 +21,7 @@ namespace Katakomba {
         private static Menu menu, ComboMenu, HarassMenu, KillStealMenu, EtcMenu, DrawingsMenu; // menus
         private static bool _isChanneling; // channeling the ultimate
 
-        private static string version = "1.5.0.0"; // Katakomba version
+        private static string version = "1.5.0.1"; // Katakomba version
 
         private static AIHeroClient target; // enemy target
         private static InventorySlot wardSlot; // where our ward resides!
@@ -107,7 +107,7 @@ namespace Katakomba {
             R = new Spell.Active(SpellSlot.R,   550);
 
             // Register the Ignite slot, if any
-            IgniteSlot = Player.Spells.FirstOrDefault(o => o.SData.Name.ToLower().Contains("summonerdot")).Slot;
+            //IgniteSlot = Player.Spells.FirstOrDefault(o => o.SData.Name.ToLower().Contains("summonerdot")).Slot;
 
             // Initialize the menu
             InitMenu();
@@ -194,7 +194,7 @@ namespace Katakomba {
         /// <param name="args">Orbwalker attack arguments</param>
         private static void Orbwalker_OnPreAttack(AttackableUnit target, Orbwalker.PreAttackArgs args) {
             if(myHero.IsMe) args.Process = !myHero.HasBuff("KatarinaR");
-        }
+        }   
 
         /// <summary>
         /// Figure out if we are in an ultimate state, channeling it.
@@ -219,15 +219,11 @@ namespace Katakomba {
 
             // Draw the bounce radius.
             if(DrawingsMenu["drawbounce"].Cast<CheckBox>().CurrentValue) {
-                // Check if Q is ready.
-                if(!Q.IsReady()) return;
-
                 // Get the last (furthest) minion in Q range.
                 var lastCreep = ObjectManager.Get<Obj_AI_Minion>().Where(m => m.IsValidTarget(Q.Range) && m.IsEnemy).LastOrDefault();
-                if(!lastCreep.IsValid()) return;
 
-                // Draw the circle
-                Drawing.DrawCircle(lastCreep.Position, 200, Color.ForestGreen);
+                // Draw the circle if Q and the creep are ready/valid
+                if(Q.IsReady() && lastCreep.IsValid()) Drawing.DrawCircle(lastCreep.Position, 200, Color.ForestGreen);
             }
             
             if(DrawingsMenu["drawq"].Cast<CheckBox>().CurrentValue) {
