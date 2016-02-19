@@ -79,8 +79,8 @@ namespace Katakomba {
             DrawingsMenu.Add("draw", new CheckBox("Enable ALL drawings", true));
             DrawingsMenu.AddSeparator();
             DrawingsMenu.Add("drawq", new CheckBox("Draw Q radius?", true));
-            DrawingsMenu.Add("drawg", new CheckBox("Draw Q bounce radius?", true));
-            DrawingsMenu.Add("drawbounce", new CheckBox("Draw Greezyness?", true));
+            DrawingsMenu.Add("drawbounce", new CheckBox("Draw Q bounce radius?", true));
+            DrawingsMenu.Add("drawg", new CheckBox("Draw Greezyness?", true));
 
             // Etc menu
             EtcMenu = menu.AddSubMenu("Et cetera", "KatakombaEtc");
@@ -120,7 +120,8 @@ namespace Katakomba {
             Game.OnTick += OnTick;
             Chat.Print("Katakomba Loaded successfully. Version " + version);
             Orbwalker.OnPreAttack     += Orbwalker_OnPreAttack;
-            Player.OnProcessSpellCast += Player_OnProcessSpellCast;
+            //Player.OnProcessSpellCast += Player_OnProcessSpellCast;
+            Obj_AI_Base.OnProcessSpellCast += Player_OnProcessSpellCast;
             Drawing.OnDraw            += OnDraw;
             Game.OnNotify             += OnNotify;
         }
@@ -543,7 +544,7 @@ namespace Katakomba {
                 Player.CastSpell(SpellSlot.E, ObjectManager.Get<Obj_AI_Base>().FirstOrDefault(a => a.Distance(myHero.ServerPosition) <= E.Range && ( a.Name.ToLower().Contains("ward") || a.Name.ToLower().Contains("totem") || a.Name.ToLower().Contains("trinket") ) ));
                 Player.CastSpell(SpellSlot.E, position);
                 E.Cast(position);
-            }, 100);
+            }, 200);
         }
     }
 }
