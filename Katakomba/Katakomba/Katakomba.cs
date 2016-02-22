@@ -357,7 +357,7 @@ namespace Katakomba {
 
             // Q + wardJump + Shunpo environment
             if(KillStealMenu["fleeks"].Cast<CheckBox>().CurrentValue) {
-                if((Helpers.MyDamage(myHero, target, true, false, false) > target.Health) && !Q.IsInRange(target.ServerPosition) && Q.IsReady()) {
+                if((Helpers.MyDamage(myHero, target, true, false, false, false) > target.Health) && !Q.IsInRange(target.ServerPosition) && Q.IsReady()) {
                     Katakomba.currentCombo = "(WARD)";
                     Console.WriteLine("ward ks! (1)");
                     jumpKS();

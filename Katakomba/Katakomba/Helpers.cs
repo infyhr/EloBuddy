@@ -27,8 +27,8 @@ namespace Katakomba {
             if(useMark) calculation += target.HasBuff("katarinaqmark") ? myHero.GetSpellDamage(target, SpellSlot.Q) : 0;
 
             // Consider ignite damage
-            var ignite = new Spell.Targeted(Katakomba.IgniteSlot, 600);
-            calculation += ignite.IsReady() ? myHero.GetSpellDamage(target, Katakomba.IgniteSlot) : 0;
+            /*var ignite = new Spell.Targeted(Katakomba.IgniteSlot, 600);
+            calculation += ignite.IsReady() ? myHero.GetSpellDamage(target, Katakomba.IgniteSlot) : 0;*/
 
             return calculation;
         }
