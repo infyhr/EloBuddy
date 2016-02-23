@@ -12,6 +12,11 @@ namespace ToxyCity {
         private static AIHeroClient myHero;
         private static string version = "1.0.0.0";
         private static int lastPing;
+        private static string[] macroSentences = {
+            "good shit go౦ԁ sHit👌 thats ✔ some good👌👌shit right👌👌there👌👌👌 right✔there ✔✔if i do ƽaү so my self 💯 i say so 💯 thats what im talking about right there right there (chorus: ʳᶦᵍʰᵗ ᵗʰᵉʳᵉ) mMMMMᎷМ💯 👌👌 👌НO0ОଠOOOOOОଠଠOoooᵒᵒᵒᵒᵒᵒᵒᵒᵒ👌 👌👌 👌 💯 👌 👀 👀 👀 👌👌Good shit",
+            "do NOT sign me the FUCK up 👎👀👎👀👎👀👎👀👎👀 bad shit ba̷̶ ԁ sHit 👎 thats ❌ some bad 👎👎shit right 👎👎 th 👎 ere 👎👎👎 right ❌ there ❌ ❌ if i do ƽaү so my selｆ🚫 i say so 🚫 thats not what im talking about right there right there (chorus: ʳᶦᵍʰᵗ ᵗʰᵉʳᵉ) mMMMMᎷМ 🚫 👎 👎👎НO0ОଠＯOOＯOОଠଠOoooᵒᵒᵒᵒᵒᵒᵒᵒᵒ 👎 👎👎 👎 🚫 👎 👀 👀 👀 👎👎Bad shit",
+            "hard",
+        };
 
         /// <summary>
         /// EloBuddy initialization.
@@ -23,6 +28,10 @@ namespace ToxyCity {
 
         public static string getVersion {
             get { return version; }
+        }
+
+        public static string[] getMacros {
+            get { return macroSentences; }
         }
 
         /// <summary>
@@ -72,6 +81,22 @@ namespace ToxyCity {
             if(pingTarget != null) ProcessPing();
 
             if(Config.getEmoteToggled) ProcessEmote();
+            if(Config.getCheckedMacro() != -1) ProcessMacro();
+        }
+
+        /// <summary>
+        /// Processes checked macro.
+        /// </summary>
+        private static void ProcessMacro() {
+            if((Environment.TickCount - lastPing) <= Config.getMacroDelay) return;
+
+            if(Config.getMacroAll) {
+                Chat.Say("/all " + macroSentences[Config.getCheckedMacro()]);
+            }else {
+                Chat.Say(macroSentences[Config.getCheckedMacro()]);
+            }
+
+            lastPing = Environment.TickCount;
         }
 
         /// <summary>

@@ -7,7 +7,7 @@ using EloBuddy.SDK.Menu.Values;
 
 namespace ToxyCity {
     class Config {
-        private static readonly Menu menu, PingMenu, EmoteMenu, EtcMenu;
+        private static readonly Menu menu, PingMenu, EmoteMenu, EtcMenu, MacroMenu;
 
         /// <summary>
         /// Initializes the main menu.
@@ -39,7 +39,15 @@ namespace ToxyCity {
             };
             EmoteMenu.Add("emote.toggle", new KeyBind("Toggle", false, KeyBind.BindTypes.PressToggle, 'L'));
 
-            // Macros (user+premade), spam timeout and shit
+            // Macros
+            MacroMenu = menu.AddSubMenu("Macros", "Macros");
+            MacroMenu.Add("macro.all", new CheckBox("All chat?", false));
+            MacroMenu.Add("macro.delay", new Slider("Delay", 10000, 50, 10000));
+            int i = 0;
+            foreach(var macro in ToxyCity.getMacros) {
+                MacroMenu.Add("macro." + i, new CheckBox(macro, false));
+                i++;
+            }
 
             // etc, AutoGG (simple si)
             EtcMenu = menu.AddSubMenu("Et cetera", "Et cetera");
@@ -62,6 +70,33 @@ namespace ToxyCity {
         /// </summary>
         public static bool getAutoGG {
             get { return EtcMenu["etc.autogg"].Cast<CheckBox>().CurrentValue; }
+        }
+
+        /// <summary>
+        /// Returns whether to send macro to /all
+        /// </summary>
+        public static bool getMacroAll {
+            get { return MacroMenu["macro.all"].Cast<CheckBox>().CurrentValue; }
+        }
+
+        /// <summary>
+        /// Returns the macro delay
+        /// </summary>
+        public static int getMacroDelay {
+            get { return MacroMenu["macro.delay"].Cast<Slider>().CurrentValue; }
+        }
+
+        /// <summary>
+        /// Returns the index of the checked macro.
+        /// </summary>
+        /// <returns></returns>
+        public static int getCheckedMacro() {
+            int i = 0;
+            foreach(var macro in ToxyCity.getMacros) {
+                if(MacroMenu["macro." + i].Cast<CheckBox>().CurrentValue) return i;
+                i++;
+            }
+            return -1;
         }
 
         /// <summary>
