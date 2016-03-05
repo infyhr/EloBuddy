@@ -16,6 +16,11 @@ namespace ToxyCity {
             "good shit go౦ԁ sHit👌 thats ✔ some good👌👌shit right👌👌there👌👌👌 right✔there ✔✔if i do ƽaү so my self 💯 i say so 💯 thats what im talking about right there right there (chorus: ʳᶦᵍʰᵗ ᵗʰᵉʳᵉ) mMMMMᎷМ💯 👌👌 👌НO0ОଠOOOOOОଠଠOoooᵒᵒᵒᵒᵒᵒᵒᵒᵒ👌 👌👌 👌 💯 👌 👀 👀 👀 👌👌Good shit",
             "do NOT sign me the FUCK up 👎👀👎👀👎👀👎👀👎👀 bad shit ba̷̶ ԁ sHit 👎 thats ❌ some bad 👎👎shit right 👎👎 th 👎 ere 👎👎👎 right ❌ there ❌ ❌ if i do ƽaү so my selｆ🚫 i say so 🚫 thats not what im talking about right there right there (chorus: ʳᶦᵍʰᵗ ᵗʰᵉʳᵉ) mMMMMᎷМ 🚫 👎 👎👎НO0ОଠＯOOＯOОଠଠOoooᵒᵒᵒᵒᵒᵒᵒᵒᵒ 👎 👎👎 👎 🚫 👎 👀 👀 👀 👎👎Bad shit",
             "hard",
+            "do NOT sign me the FUCK up 👎👀👎👀👎👀👎👀👎👀 bad SCRIPT baddԁ sCriPt 👎 thats ❌ some bad 👎👎script right 👎👎 th 👎 ere 👎👎👎 right ❌ there ❌ ❌ if i do ƽaү so my selｆ🚫 i say so 🚫 thats not what im talking about right there right there (chorus: ʳᶦᵍʰᵗ ᵗʰᵉʳᵉ) mMMMMᎷМ 🚫 👎 👎👎НO0ОଠＯOOＯOОଠଠOoooᵒᵒᵒᵒᵒᵒᵒᵒᵒ 👎 👎👎 👎 🚫 👎 👀 👀 👀 👎👎Bad scriptbadscript",
+            "gooooooooood scriptgood script THATS SOME GUD SKRIPT right there if i do ayyyyy so my sel ayyyyyy so hOOOOOOO00000000000000 goodscriptgoodscript sign me the FUCK UP goodskript banned when",
+            "Anger management is training for temper control and is the skill of remaining calm and composed.[1] It has been described as deploying anger successfully.[1] Anger is frequently a result of frustration, or of feeling blocked or thwarted from something we feel to be important. Anger can also be a defensive response to underlying fear or feelings of vulnerability or powerlessness.[2] Anger management programs consider anger to be a motivation caused by an identifiable reason which can be logically analyzed and if suitable worked toward.[1]",
+            "Gr8 b8, m8. I rel8, str8 appreci8, and congratul8. I r8 this b8 an 8/8. Plz no h8, I'm str8 ir8. Cr8 more, can't w8. We should convers8, I won't ber8, my number is 8888888, ask for N8. No calls l8 or out of st8. If on a d8, ask K8 to loc8. Even with a full pl8, I always have time to communic8 so don't hesit8. dont forget to medit8 and particip8 and masturb8 to allevi8 your ability to tabul8 the f8. We should meet up m8 and convers8 on how we can cre8 more gr8 b8, I'm sure everyone would appreci8, no h8. I don't mean to defl8 your hopes, but its hard to dict8 where the b8 will rel8 and we may end up with out being appreci8d, I'm sure you can rel8. We can cre8 b8 like alexander the gr8, stretch posts longer than the Nile's str8s. We'll be the captains of b8, 4chan our first m8s the growth r8 will spread to reddit and like real est8 and be a flow r8 of gr8 b8, like a blind d8 we'll coll8, meet me upst8 where we can convers8, or ice sk8 or lose w8 infl8 our hot air baloons and fly, tail g8. We could land in Kuw8, eat a soup pl8 followed by a dessert pl8 the payment r8 won't be too ir8 and hopefully our currency won't defl8. We'll head to the Israeli-St8, taker over like Herod the gr8 and b8 the jewish masses, 8 million, m8. We could interrel8 communism, thought it's past it's maturity d8, a department of st8, volunteer st8. reduce the infant mortality r8, all in the name of making gr8 b8 m8",
+            "It-ji ma, it-ji ma, uriga ichiban Bich-i na, bich-i na, uliga bich-i na Singyeong kkeo, neoneun neo, naneun na We the killer whales, nalgae pigo don wieseo suyeong C-O-H-O-R-T, we the Cohort, pay these boys Motherfucker fucker, judung-iman ppeokkeumppeokkeum (fuck 'em) Neoneun neo, naneun na, bad-adeul-yeo eoseo Neoneun namdeul yoghal ttae naneun don beolleo"
         };
 
         /// <summary>
@@ -67,9 +72,7 @@ namespace ToxyCity {
         /// <param name="args">EventArgs</param>
         /// <param name="sender">Sender</param>
         private static void OnMessage(AIHeroClient sender, ChatMessageEventArgs args) {
-            if(Config.getAutoGG && sender.IsAlly && args.Message.ToLower().Equals("gg") && !sender.IsMe) {
-                Chat.Say("/all gg");
-            }
+            
         }
 
         /// <summary>

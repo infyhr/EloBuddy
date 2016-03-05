@@ -461,7 +461,7 @@ namespace Katakomba {
 
             // R
             if(R.IsReady() && myHero.CountEnemiesInRange(R.Range) > 0) {
-                if(!Q.IsReady() && !E.IsReady()) {
+                if(!Q.IsReady() && !E.IsReady() && !W.IsReady()) {
                     Orbwalker.DisableAttacking.Equals(true);
                     Orbwalker.DisableMovement.Equals(true);
                     R.Cast();
